@@ -1,14 +1,4 @@
-const Hex     = require('./shapes/hexagon.js')
-const Triangle = require('./shapes/triangle.js')
 const Square  = require('./shapes/square.js')
-
-const shapeArray = [ Hex, Triangle, Square ];
-
-const Random = function(ctx, coords, size) {
-  const index = getRandomNumber(0,2)
-  return shapeArray[index]
-}
-
 
 const getRandomNumber = function getRandomNumber(minimum, maximum) {
   const min = minimum || 1
@@ -16,74 +6,59 @@ const getRandomNumber = function getRandomNumber(minimum, maximum) {
   return Math.round(Math.random() * max - min) + min
 }
 
+const createNumberArray = function createNumberArray(length) {
+  return Array.apply([], Array(length)).map((el, index) => index)
+}
 
 let board;
 let ctx;
-let size;
 
 $(function(){
   board = $('#game-board')[0];
   ctx  = board.getContext('2d');
   let drawingState = false;
-  let currentShape = Hex;
-  let random = false;
-  let drawMode = 'drag';
-
-  const $shapeSelect = $('#shape-select');
-  $shapeSelect.on('change', function() {
-    const userChoice = $(this).val()
-    
-    switch(userChoice){
-      case 'hex':
-      currentShape = Hex
-      random = false;
-      break
-
-      case 'tri':
-      currentShape = Triangle
-      random = false;
-      break
-
-      case 'sqr':
-      currentShape = Square
-      random = false;
-      break
-
-      case 'rand':
-      currentShape = Random()
-      random = true
-      break
-    }
-  });
-
-  const $modeSelect = $('#mode-select');
-  $modeSelect.on('change', function(){
-    const userChoice = $(this).val()
-    drawMode = userChoice;
-  });
-
-  const $startBtn = $('#toggle-drawing');
-  $startBtn.on('click', function() {
-    $btn = $(this);
-    drawingState ? $btn.text('Start') : $btn.text('Drawing')
-    drawingState = !drawingState
-  });
 
   $(board).on('mousemove', function(event){
-    if(!drawingState || drawMode != 'drag') { return }
-    drawShape(event);
+    if(!drawingState) { return }
+    fillSquare({x: event.offsetX, y: event.offsetY});
   });
 
   $(board).on('mousedown', function(event){
-    if(!drawingState || drawMode != 'click') { return }
-    drawShape(event);
+    fillSquare({x: event.offsetX, y: event.offsetY});
+    drawingState = true
+  });
+  $(board).on('mouseup', function(event){
+    drawingState = false
   });
 
-function drawShape(event) {
-    if(random) {
-      const shape = Random()
-      return new shape(ctx, {x: event.pageX, y: event.pageY}, getRandomNumber(30, 300)).render()
-    }
-    new currentShape(ctx, {x: event.pageX, y: event.pageY}, getRandomNumber(30, 300)).render()
+  function createGrid(board) {
+    const width = board.width;
+    const height = board.height;
+    const pixelSize = 50;
+    const maxRows = Math.floor(height/pixelSize)
+    const maxCols = Math.floor(width/pixelSize)
+
+    window.grid = createNumberArray(maxRows).map((row, rowIndex) => {
+      return createNumberArray(maxCols).map((col, colIndex) => {
+        return new Square(ctx, { x: colIndex * pixelSize, y: rowIndex * pixelSize }, pixelSize)
+      })
+    })
+    strokeGrid(window.grid)
   }
+
+  function strokeGrid(grid) {
+    grid.forEach((row) => {
+      row.forEach((square) => {
+        square.outline()
+      })
+    })
+  }
+
+  function fillSquare(coords) {
+    // add logic for determining the current pixel user is on
+    x = Math.floor((coords.x / 50))
+    y = Math.floor((coords.y / 50))
+    window.grid[y][x].fill()
+  }
+  createGrid(board)
 });

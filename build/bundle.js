@@ -44,17 +44,7 @@
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-	const Hex     = __webpack_require__(1)
-	const Triangle = __webpack_require__(2)
-	const Square  = __webpack_require__(3)
-
-	const shapeArray = [ Hex, Triangle, Square ];
-
-	const Random = function(ctx, coords, size) {
-	  const index = getRandomNumber(0,2)
-	  return shapeArray[index]
-	}
-
+	const Square  = __webpack_require__(1)
 
 	const getRandomNumber = function getRandomNumber(minimum, maximum) {
 	  const min = minimum || 1
@@ -62,76 +52,61 @@
 	  return Math.round(Math.random() * max - min) + min
 	}
 
+	const createNumberArray = function createNumberArray(length) {
+	  return Array.apply([], Array(length)).map((el, index) => index)
+	}
 
 	let board;
 	let ctx;
-	let size;
 
 	$(function(){
 	  board = $('#game-board')[0];
 	  ctx  = board.getContext('2d');
 	  let drawingState = false;
-	  let currentShape = Hex;
-	  let random = false;
-	  let drawMode = 'drag';
-
-	  const $shapeSelect = $('#shape-select');
-	  $shapeSelect.on('change', function() {
-	    const userChoice = $(this).val()
-	    
-	    switch(userChoice){
-	      case 'hex':
-	      currentShape = Hex
-	      random = false;
-	      break
-
-	      case 'tri':
-	      currentShape = Triangle
-	      random = false;
-	      break
-
-	      case 'sqr':
-	      currentShape = Square
-	      random = false;
-	      break
-
-	      case 'rand':
-	      currentShape = Random()
-	      random = true
-	      break
-	    }
-	  });
-
-	  const $modeSelect = $('#mode-select');
-	  $modeSelect.on('change', function(){
-	    const userChoice = $(this).val()
-	    drawMode = userChoice;
-	  });
-
-	  const $startBtn = $('#toggle-drawing');
-	  $startBtn.on('click', function() {
-	    $btn = $(this);
-	    drawingState ? $btn.text('Start') : $btn.text('Drawing')
-	    drawingState = !drawingState
-	  });
 
 	  $(board).on('mousemove', function(event){
-	    if(!drawingState || drawMode != 'drag') { return }
-	    drawShape(event);
+	    if(!drawingState) { return }
+	    fillSquare({x: event.offsetX, y: event.offsetY});
 	  });
 
 	  $(board).on('mousedown', function(event){
-	    if(!drawingState || drawMode != 'click') { return }
-	    drawShape(event);
+	    fillSquare({x: event.offsetX, y: event.offsetY});
+	    drawingState = true
+	  });
+	  $(board).on('mouseup', function(event){
+	    drawingState = false
 	  });
 
-	function drawShape(event) {
-	    if(random) {
-	      const shape = Random()
-	      return new shape(ctx, {x: event.pageX, y: event.pageY}, getRandomNumber(30, 300)).render()
-	    }
-	    new currentShape(ctx, {x: event.pageX, y: event.pageY}, getRandomNumber(30, 300)).render()
+	  function createGrid(board) {
+	    const width = board.width;
+	    const height = board.height;
+	    const pixelSize = 50;
+	    const maxRows = Math.floor(height/pixelSize)
+	    const maxCols = Math.floor(width/pixelSize)
+
+	    window.grid = createNumberArray(maxRows).map((row, rowIndex) => {
+	      return createNumberArray(maxCols).map((col, colIndex) => {
+	        return new Square(ctx, { x: colIndex * pixelSize, y: rowIndex * pixelSize }, pixelSize)
+	      })
+	    })
+	    strokeGrid(window.grid)
 	  }
+
+	  function strokeGrid(grid) {
+	    grid.forEach((row) => {
+	      row.forEach((square) => {
+	        square.outline()
+	      })
+	    })
+	  }
+
+	  function fillSquare(coords) {
+	    // add logic for determining the current pixel user is on
+	    x = Math.floor((coords.x / 50))
+	    y = Math.floor((coords.y / 50))
+	    window.grid[y][x].fill()
+	  }
+	  createGrid(board)
 	});
 
 
@@ -139,101 +114,28 @@
 /* 1 */
 /***/ function(module, exports) {
 
-	const Hexagon = function Hexagon(ctx, coords, size){
-	  this.ctx    = (function() { return ctx; })()
-	  this.size   = (function() { return size; })()
-	  this.coords = (function() { return coords; })()
-
-	  this.render = function render(){
-	    drawHex()
-	  }
-
-	  // Private functions
-	  const drawHex = function drawHex(){
-	    const hex = new Path2D();
-	    const hexVertices = getHexVertices();
-	                        
-	    this.ctx.fillStyle = `rgb(${Math.round(coords.y * 0.25)},${Math.round(coords.y * 0.25)},${Math.round(coords.y * 0.75)})`;
-	    hex.moveTo(hexVertices[0].x, hexVertices[0].y);
-
-	    hexVertices.forEach(function(hexCoords) {
-	      hex.lineTo(hexCoords.x, hexCoords.y)
-	    })
-	    this.ctx.fill(hex);
-	  }.bind(this)
-
-	  const getHexVertices = function getHexVertices() {
-	    const emptyArray = createNumberArray(6)
-	    const hexVertices = emptyArray.map(hexCorner);
-	    return hexVertices;
-	  }
-
-	  const hexCorner = function hexCorner(el, index) {
-	    const angleDegree = 60 * index;
-	    const angleRadius = Math.PI / 180 * angleDegree;
-	    return({x: (this.coords.x + this.size/2 * Math.cos(angleRadius)),
-	            y: (this.coords.y + this.size/2 * Math.sin(angleRadius)) })
-	  }.bind(this)
-
-	  const createNumberArray = function createNumberArray(length) {
-	    return Array.apply([], Array(length)).map((el, index) => index)
-	  }
-	}
-
-	module.exports = Hexagon
-
-/***/ },
-/* 2 */
-/***/ function(module, exports) {
-
-	const Triangle = function Triangle(ctx, coords, size){
-	  this.ctx    = (function() { return ctx; })()
-	  this.size   = (function() { return size; })()
-	  this.coords = (function() { return coords; })()
-
-	  this.render = function render(){
-	    draw()
-	  }
-
-	  // Private functions
-	  const draw = function draw(){
-	    const tri = new Path2D();
-	    const triVertices = getTriVertices();
-	                        
-	    this.ctx.fillStyle = `rgb(${Math.round(coords.y * 0.25)},${Math.round(coords.y * 0.25)},${Math.round(coords.y * 0.75)})`;
-	    tri.moveTo(triVertices[0].x, triVertices[0].y);
-
-	    triVertices.forEach(function(triCoords) {
-	      tri.lineTo(triCoords.x, triCoords.y)
-	    })
-	    this.ctx.fill(tri);
-	  }.bind(this)
-
-	  const getTriVertices = function getTriVertices() {
-	    const offset = size/2
-	    return ([ {x: coords.x, y: coords.y - offset},
-	      {x: coords.x + offset, y: coords.y + offset},
-	      {x: coords.x - offset, y: coords.y + offset}
-	    ])
-	  }
-	}
-
-	module.exports = Triangle
-
-/***/ },
-/* 3 */
-/***/ function(module, exports) {
-
 	const Square = function Square(ctx, center, size){
 	  this.ctx    = (function() { return ctx; })()
 	  this.size   = (function() { return size; })()
 	  this.center = (function() { return center; })()
 
-	  this.render = function render(){
-	    draw()
-	  }
+	  this.fill = function fill() { draw() }
+	  this.outline = function outline() { stroke() }
 
 	  // Private functions
+	  const stroke = function stroke() {
+	    const sqr = new Path2D();
+	    const sqrVertices = getVertices();
+
+	    this.ctx.strokeStyle = 'rgb(200,200,200)';
+	    sqr.moveTo(sqrVertices[0].x, sqrVertices[0].y);
+
+	    sqrVertices.forEach(function(coords) {
+	      sqr.lineTo(coords.x, coords.y)
+	    })
+	    this.ctx.stroke(sqr);
+	  }.bind(this)
+
 	  const draw = function draw(){
 	    const sqr = new Path2D();
 	    const sqrVertices = getVertices();
@@ -248,11 +150,10 @@
 	  }.bind(this)
 
 	  const getVertices = function getVertices() {
-	    const offset = size/2
-	    return ([ {x: center.x - offset, y: center.y - offset},
-	      {x: center.x + offset, y: center.y - offset},
-	      {x: center.x + offset, y: center.y + offset},
-	      {x: center.x - offset, y: center.y + offset}
+	    return ([ {x: center.x, y: center.y},
+	      {x: center.x + size, y: center.y},
+	      {x: center.x + size, y: center.y + size},
+	      {x: center.x, y: center.y + size}
 	    ])
 	  }
 	}
